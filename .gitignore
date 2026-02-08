@@ -41,3 +41,6 @@ __debug_bin*
 # Build
 /dist/
 /tmp/
+
+# Generated docs
+/docs/asyncapi/

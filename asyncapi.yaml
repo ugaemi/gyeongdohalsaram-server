@@ -1,0 +1,585 @@
+asyncapi: 3.0.0
+
+info:
+  title: 경도할사람 게임 서버
+  version: 0.1.0
+  description: |
+    2D 경찰 vs 도둑 멀티플레이어 게임 WebSocket API.
+    Godot 4.6 iOS 클라이언트용.
+
+    ## 연결 흐름
+    1. `ws://host:8080/ws`로 WebSocket 연결
+    2. `authenticate` 메시지로 인증 (Game Center 또는 게스트)
+    3. 인증 성공 후 로비/게임 메시지 사용 가능
+
+    ## 메시지 포맷
+    모든 메시지는 `{"type": "...", "data": {...}}` 형태의 JSON입니다.
+
+servers:
+  development:
+    host: localhost:8080
+    protocol: ws
+    pathname: /ws
+    description: 로컬 개발 서버
+
+channels:
+  game:
+    address: /ws
+    messages:
+      # === 인증 ===
+      authenticate:
+        $ref: '#/components/messages/authenticate'
+      authResult:
+        $ref: '#/components/messages/authResult'
+
+      # === 로비 ===
+      createRoom:
+        $ref: '#/components/messages/createRoom'
+      createRoomResponse:
+        $ref: '#/components/messages/createRoomResponse'
+      joinRoom:
+        $ref: '#/components/messages/joinRoom'
+      joinRoomResponse:
+        $ref: '#/components/messages/joinRoomResponse'
+      leaveRoom:
+        $ref: '#/components/messages/leaveRoom'
+      selectTeam:
+        $ref: '#/components/messages/selectTeam'
+      playerReady:
+        $ref: '#/components/messages/playerReady'
+      roomInfo:
+        $ref: '#/components/messages/roomInfo'
+
+      # === 게임플레이 ===
+      playerMove:
+        $ref: '#/components/messages/playerMove'
+      gameState:
+        $ref: '#/components/messages/gameState'
+      gameOver:
+        $ref: '#/components/messages/gameOver'
+
+      # === 시스템 ===
+      error:
+        $ref: '#/components/messages/error'
+
+operations:
+  # --- 클라이언트 → 서버 ---
+  sendAuthenticate:
+    action: send
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/authenticate'
+    summary: 인증 요청
+    description: 연결 후 10초 이내에 전송해야 합니다. Game Center 또는 게스트 방식 선택.
+
+  sendCreateRoom:
+    action: send
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/createRoom'
+    summary: 방 생성 요청
+    description: 인증 완료 후 사용 가능. 새 방을 생성하고 호스트가 됩니다.
+
+  sendJoinRoom:
+    action: send
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/joinRoom'
+    summary: 방 참가 요청
+    description: 4자리 방 코드로 기존 방에 참가합니다.
+
+  sendLeaveRoom:
+    action: send
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/leaveRoom'
+    summary: 방 나가기
+
+  sendSelectTeam:
+    action: send
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/selectTeam'
+    summary: 팀 선택
+    description: 경찰(최대 2명) 또는 도둑을 선택합니다.
+
+  sendPlayerReady:
+    action: send
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/playerReady'
+    summary: 준비 완료
+
+  sendPlayerMove:
+    action: send
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/playerMove'
+    summary: 플레이어 이동
+    description: 맵 범위(3240x5760) 내 좌표를 전송합니다.
+
+  # --- 서버 → 클라이언트 ---
+  receiveAuthResult:
+    action: receive
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/authResult'
+    summary: 인증 결과
+
+  receiveCreateRoomResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/createRoomResponse'
+    summary: 방 생성 결과
+
+  receiveJoinRoomResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/joinRoomResponse'
+    summary: 방 참가 결과
+
+  receiveRoomInfo:
+    action: receive
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/roomInfo'
+    summary: 방 상태 업데이트
+    description: 로비 상태가 변경될 때마다 방의 모든 플레이어에게 브로드캐스트됩니다.
+
+  receiveGameState:
+    action: receive
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/gameState'
+    summary: 게임 상태 브로드캐스트
+    description: 매 틱(20 TPS)마다 모든 플레이어의 위치와 상태를 전송합니다.
+
+  receiveGameOver:
+    action: receive
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/gameOver'
+    summary: 게임 종료
+
+  receiveError:
+    action: receive
+    channel:
+      $ref: '#/channels/game'
+    messages:
+      - $ref: '#/channels/game/messages/error'
+    summary: 에러 응답
+
+components:
+  messages:
+    # === 인증 ===
+    authenticate:
+      name: authenticate
+      title: 인증 요청
+      summary: Game Center 또는 게스트 로그인
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: authenticate
+          data:
+            oneOf:
+              - $ref: '#/components/schemas/GameCenterAuthRequest'
+              - $ref: '#/components/schemas/GuestAuthRequest'
+
+    authResult:
+      name: auth_result
+      title: 인증 결과
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: auth_result
+          data:
+            oneOf:
+              - $ref: '#/components/schemas/AuthSuccess'
+              - $ref: '#/components/schemas/AuthFailure'
+
+    # === 로비 ===
+    createRoom:
+      name: create_room
+      title: 방 생성 요청
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: create_room
+          data:
+            type: object
+            required: [nickname]
+            properties:
+              nickname:
+                type: string
+                description: 플레이어 닉네임
+                examples:
+                  - "경찰1호"
+
+    createRoomResponse:
+      name: create_room
+      title: 방 생성 응답
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: create_room
+          data:
+            $ref: '#/components/schemas/RoomJoinResult'
+
+    joinRoom:
+      name: join_room
+      title: 방 참가 요청
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: join_room
+          data:
+            type: object
+            required: [code, nickname]
+            properties:
+              code:
+                type: string
+                description: 4자리 방 코드
+                pattern: "^[A-Z]{4}$"
+                examples:
+                  - "ABCD"
+              nickname:
+                type: string
+                examples:
+                  - "도둑1호"
+
+    joinRoomResponse:
+      name: join_room
+      title: 방 참가 응답
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: join_room
+          data:
+            $ref: '#/components/schemas/RoomJoinResult'
+
+    leaveRoom:
+      name: leave_room
+      title: 방 나가기
+      payload:
+        type: object
+        required: [type]
+        properties:
+          type:
+            type: string
+            const: leave_room
+
+    selectTeam:
+      name: select_team
+      title: 팀 선택
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: select_team
+          data:
+            type: object
+            required: [role]
+            properties:
+              role:
+                type: string
+                enum: [police, thief]
+                description: "경찰(최대 2명) 또는 도둑"
+
+    playerReady:
+      name: player_ready
+      title: 준비 완료
+      payload:
+        type: object
+        required: [type]
+        properties:
+          type:
+            type: string
+            const: player_ready
+
+    roomInfo:
+      name: room_info
+      title: 방 상태 브로드캐스트
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: room_info
+          data:
+            $ref: '#/components/schemas/RoomInfo'
+
+    # === 게임플레이 ===
+    playerMove:
+      name: player_move
+      title: 플레이어 이동
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: player_move
+          data:
+            type: object
+            required: [x, "y"]
+            properties:
+              x:
+                type: number
+                format: float
+                minimum: 0
+                maximum: 3240
+                description: X 좌표 (px)
+              "y":
+                type: number
+                format: float
+                minimum: 0
+                maximum: 5760
+                description: Y 좌표 (px)
+
+    gameState:
+      name: game_state
+      title: 게임 상태 브로드캐스트
+      description: 매 틱(50ms)마다 전송
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: game_state
+          data:
+            $ref: '#/components/schemas/GameState'
+
+    gameOver:
+      name: game_over
+      title: 게임 종료
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: game_over
+          data:
+            $ref: '#/components/schemas/GameOver'
+
+    # === 시스템 ===
+    error:
+      name: error
+      title: 에러 응답
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            const: error
+          data:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+                examples:
+                  - "authentication required"
+                  - "room not found"
+                  - "nickname is required"
+
+  schemas:
+    # === 인증 스키마 ===
+    GameCenterAuthRequest:
+      type: object
+      description: Game Center 인증 (iOS)
+      required: [method, player_id, bundle_id, public_key_url, signature, salt, timestamp]
+      properties:
+        method:
+          type: string
+          const: game_center
+        player_id:
+          type: string
+          description: Game Center player ID
+          examples:
+            - "G:1234567890"
+        bundle_id:
+          type: string
+          description: 앱 번들 ID
+          examples:
+            - "com.ugaemi.gyeongdohalsaram"
+        public_key_url:
+          type: string
+          format: uri
+          description: Apple 공개키 인증서 URL
+          examples:
+            - "https://static.gc.apple.com/public-key/gc-prod-6.cer"
+        signature:
+          type: string
+          format: byte
+          description: Base64 인코딩된 서명
+        salt:
+          type: string
+          format: byte
+          description: Base64 인코딩된 솔트
+        timestamp:
+          type: integer
+          format: uint64
+          description: 밀리초 단위 타임스탬프
+
+    GuestAuthRequest:
+      type: object
+      description: 게스트 로그인 (개발/테스트)
+      required: [method, nickname]
+      properties:
+        method:
+          type: string
+          const: guest
+        nickname:
+          type: string
+          description: 게스트 닉네임
+          examples:
+            - "플레이어1"
+
+    AuthSuccess:
+      type: object
+      required: [success, account_id, nickname]
+      properties:
+        success:
+          type: boolean
+          const: true
+        account_id:
+          type: string
+          format: uuid
+          description: 내부 계정 ID
+        nickname:
+          type: string
+          description: 최근 사용 닉네임
+
+    AuthFailure:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          const: false
+        error:
+          type: string
+          examples:
+            - "invalid signature"
+            - "timestamp expired"
+
+    # === 로비 스키마 ===
+    RoomJoinResult:
+      type: object
+      required: [code, player_id]
+      properties:
+        code:
+          type: string
+          description: 4자리 방 코드
+          pattern: "^[A-Z]{4}$"
+          examples:
+            - "ABCD"
+        player_id:
+          type: string
+          format: uuid
+          description: 방 내 플레이어 ID
+
+    RoomInfo:
+      type: object
+      required: [code, state, players, host_id]
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z]{4}$"
+        state:
+          type: string
+          enum: [waiting, playing, ended]
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+          maxItems: 8
+        host_id:
+          type: string
+          format: uuid
+
+    # === 게임 스키마 ===
+    Player:
+      type: object
+      required: [id, nickname, role, state, x, "y", ready]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nickname:
+          type: string
+        role:
+          type: string
+          enum: [none, police, thief]
+        state:
+          type: string
+          enum: [free, arrested, invincible]
+        x:
+          type: number
+          format: float
+        "y":
+          type: number
+          format: float
+        ready:
+          type: boolean
+
+    GameState:
+      type: object
+      required: [remaining_time, players]
+      properties:
+        remaining_time:
+          type: number
+          format: float
+          description: 남은 게임 시간 (초)
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/Player'
+
+    GameOver:
+      type: object
+      required: [winner]
+      properties:
+        winner:
+          type: string
+          enum: [police, thief]
+          description: 승리 팀

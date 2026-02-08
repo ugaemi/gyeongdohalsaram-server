@@ -1,4 +1,4 @@
-.PHONY: build run test lint clean
+.PHONY: build run test lint clean docs
 
 BINARY_NAME=server
 BUILD_DIR=bin
@@ -16,6 +16,9 @@ lint:
 	go vet ./...
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) docs/asyncapi
+
+docs:
+	npx --yes @asyncapi/cli generate fromTemplate asyncapi.yaml @asyncapi/html-template -o docs/asyncapi --force-write
 
 .DEFAULT_GOAL := build
