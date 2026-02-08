@@ -4,19 +4,23 @@ import (
 	"encoding/json"
 	"log/slog"
 
+	"github.com/ugaemi/gyeongdohalsaram-server/internal/auth"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/room"
+	"github.com/ugaemi/gyeongdohalsaram-server/internal/store"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/ws"
 )
 
 // Router dispatches incoming messages to the appropriate handler.
 type Router struct {
+	authH    *AuthHandler
 	lobby    *LobbyHandler
 	gameplay *GameplayHandler
 }
 
 // NewRouter creates a new message router.
-func NewRouter(rm *room.Manager) *Router {
+func NewRouter(rm *room.Manager, verifier *auth.GameCenterVerifier, accountStore store.AccountStore) *Router {
 	return &Router{
+		authH:    NewAuthHandler(verifier, accountStore),
 		lobby:    NewLobbyHandler(rm),
 		gameplay: NewGameplayHandler(rm),
 	}
@@ -28,6 +32,18 @@ func (r *Router) HandleMessage(cm *ws.ClientMessage) {
 	if err := json.Unmarshal(cm.Data, &msg); err != nil {
 		slog.Warn("invalid message format", "client", cm.Client.ID, "error", err)
 		cm.Client.SendMessage(ws.NewErrorMessage("invalid message format"))
+		return
+	}
+
+	// Auth messages are always allowed
+	if msg.Type == ws.TypeAuthenticate {
+		r.authH.HandleAuthenticate(cm.Client, msg)
+		return
+	}
+
+	// Auth guard: block unauthenticated clients
+	if !cm.Client.Authenticated {
+		cm.Client.SendMessage(ws.NewErrorMessage("authentication required"))
 		return
 	}
 
@@ -57,4 +73,9 @@ func (r *Router) HandleMessage(cm *ws.ClientMessage) {
 // HandleDisconnect handles client disconnection.
 func (r *Router) HandleDisconnect(client *ws.Client) {
 	r.lobby.HandleDisconnect(client)
+}
+
+// StartAuthTimeout starts the authentication timeout for a new client.
+func (r *Router) StartAuthTimeout(client *ws.Client) {
+	r.authH.StartAuthTimeout(client)
 }

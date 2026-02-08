@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/gorilla/websocket"
+	"github.com/ugaemi/gyeongdohalsaram-server/internal/auth"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/config"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/handler"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/room"
@@ -40,9 +41,12 @@ func main() {
 	}
 	slog.Info("database connected")
 
+	// Initialize Game Center verifier
+	gcVerifier := auth.NewGameCenterVerifier(cfg.GCBundleIDs, cfg.GCTimestampTolerance)
+
 	hub := ws.NewHub()
 	rm := room.NewManager()
-	router := handler.NewRouter(rm)
+	router := handler.NewRouter(rm, gcVerifier, accountStore)
 
 	hub.OnMessage = router.HandleMessage
 	hub.OnDisconnect = router.HandleDisconnect
@@ -51,7 +55,7 @@ func main() {
 
 	http.HandleFunc("/health", handleHealth)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		handleWebSocket(hub, w, r)
+		handleWebSocket(hub, router, w, r)
 	})
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
@@ -87,7 +91,7 @@ func handleHealth(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte(`{"status":"ok"}`))
 }
 
-func handleWebSocket(hub *ws.Hub, w http.ResponseWriter, r *http.Request) {
+func handleWebSocket(hub *ws.Hub, router *handler.Router, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("websocket upgrade failed", "error", err)
@@ -96,6 +100,8 @@ func handleWebSocket(hub *ws.Hub, w http.ResponseWriter, r *http.Request) {
 
 	client := ws.NewClient(fmt.Sprintf("client-%d", hub.ClientCount()+1), hub, conn)
 	hub.Register <- client
+
+	router.StartAuthTimeout(client)
 
 	go client.WritePump()
 	go client.ReadPump()

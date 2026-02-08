@@ -17,10 +17,12 @@ const (
 
 // Client represents a single WebSocket connection.
 type Client struct {
-	ID   string
-	Hub  *Hub
-	Conn *websocket.Conn
-	Send chan []byte
+	ID            string
+	AccountID     string // Set after authentication
+	Authenticated bool
+	Hub           *Hub
+	Conn          *websocket.Conn
+	Send          chan []byte
 }
 
 // NewClient creates a new Client.

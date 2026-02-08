@@ -24,6 +24,12 @@ const (
 	TypeGameOver   = "game_over"
 )
 
+// Message types - Auth
+const (
+	TypeAuthenticate = "authenticate"
+	TypeAuthResult   = "auth_result"
+)
+
 // Message types - System
 const (
 	TypeError    = "error"
