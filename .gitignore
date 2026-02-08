@@ -1,0 +1,43 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin/
+/server
+
+# Test
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Dependency
+/vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Debug
+*.prof
+*.pprof
+debug
+__debug_bin*
+
+# Build
+/dist/
+/tmp/
