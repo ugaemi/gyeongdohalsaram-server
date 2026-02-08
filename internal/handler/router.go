@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"log/slog"
+	"sync"
 
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/auth"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/room"
@@ -15,15 +16,42 @@ type Router struct {
 	authH    *AuthHandler
 	lobby    *LobbyHandler
 	gameplay *GameplayHandler
+
+	// playerMap tracks client ID -> player ID mapping, shared across handlers.
+	playerMap map[string]string
+	mu        sync.RWMutex
 }
 
 // NewRouter creates a new message router.
 func NewRouter(rm *room.Manager, verifier *auth.GameCenterVerifier, accountStore store.AccountStore) *Router {
-	return &Router{
-		authH:    NewAuthHandler(verifier, accountStore),
-		lobby:    NewLobbyHandler(rm),
-		gameplay: NewGameplayHandler(rm),
+	r := &Router{
+		playerMap: make(map[string]string),
 	}
+	r.authH = NewAuthHandler(verifier, accountStore)
+	r.lobby = NewLobbyHandler(rm, r)
+	r.gameplay = NewGameplayHandler(rm, r)
+	return r
+}
+
+// RegisterPlayer maps a client ID to a player ID.
+func (r *Router) RegisterPlayer(clientID, playerID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.playerMap[clientID] = playerID
+}
+
+// UnregisterPlayer removes a client's player mapping.
+func (r *Router) UnregisterPlayer(clientID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.playerMap, clientID)
+}
+
+// GetPlayerID returns the player ID for a client, or empty string if not found.
+func (r *Router) GetPlayerID(clientID string) string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.playerMap[clientID]
 }
 
 // HandleMessage parses and routes an incoming client message.
