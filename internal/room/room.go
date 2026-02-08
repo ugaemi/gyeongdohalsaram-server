@@ -273,6 +273,10 @@ func (r *Room) gameLoop() {
 				playerList = append(playerList, p)
 			}
 
+			// Collision detection (Phase 4 will process arrest/rescue mechanics)
+			_ = game.FindArrestPairs(playerList)
+			_ = game.FindJailRescueCandidates(playerList, game.JailX, game.JailY)
+
 			remaining := r.remainingTime.Seconds()
 			if remaining < 0 {
 				remaining = 0
