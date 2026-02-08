@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gorilla/websocket"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/config"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/handler"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/room"
+	"github.com/ugaemi/gyeongdohalsaram-server/internal/store"
 	"github.com/ugaemi/gyeongdohalsaram-server/internal/ws"
 )
 
@@ -24,6 +28,17 @@ var upgrader = websocket.Upgrader{
 func main() {
 	cfg := config.Load()
 	setupLogger(cfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Initialize database
+	accountStore, err := store.NewPostgresStore(ctx, cfg.DatabaseURL)
+	if err != nil {
+		slog.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("database connected")
 
 	hub := ws.NewHub()
 	rm := room.NewManager()
@@ -40,8 +55,27 @@ func main() {
 	})
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
+	server := &http.Server{Addr: addr}
+
+	// Graceful shutdown
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+		<-sigCh
+
+		slog.Info("shutting down server...")
+		if err := server.Shutdown(context.Background()); err != nil {
+			slog.Error("server shutdown error", "error", err)
+		}
+		if err := accountStore.Close(); err != nil {
+			slog.Error("database close error", "error", err)
+		}
+		slog.Info("database connection closed")
+		cancel()
+	}()
+
 	slog.Info("server starting", "addr", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("server failed", "error", err)
 		os.Exit(1)
 	}

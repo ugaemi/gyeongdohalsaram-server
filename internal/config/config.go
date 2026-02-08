@@ -6,16 +6,18 @@ import (
 )
 
 type Config struct {
-	Port      int
-	LogLevel  string
-	LogFormat string
+	Port        int
+	LogLevel    string
+	LogFormat   string
+	DatabaseURL string
 }
 
 func Load() *Config {
 	return &Config{
-		Port:      getEnvInt("PORT", 8080),
-		LogLevel:  getEnv("LOG_LEVEL", "info"),
-		LogFormat: getEnv("LOG_FORMAT", "text"),
+		Port:        getEnvInt("PORT", 8080),
+		LogLevel:    getEnv("LOG_LEVEL", "info"),
+		LogFormat:   getEnv("LOG_FORMAT", "text"),
+		DatabaseURL: getEnv("DATABASE_URL", "postgres://localhost:5432/gyeongdohalsaram?sslmode=disable"),
 	}
 }
 

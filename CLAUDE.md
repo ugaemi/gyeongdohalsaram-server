@@ -9,6 +9,7 @@
 - **UUID**: `github.com/google/uuid`
 - **테스트**: `github.com/stretchr/testify`
 - **로깅**: `log/slog` (stdlib)
+- **DB**: `github.com/jackc/pgx/v5` (PostgreSQL)
 
 ## 프로젝트 구조
 
@@ -20,6 +21,8 @@ internal/
   room/                      # 방 관리
   game/                      # 게임 로직, 상수, 플레이어
   handler/                   # 메시지 라우팅 및 핸들러
+  account/                   # 계정 모델
+  store/                     # DB 저장소 (PostgreSQL)
 ```
 
 ## 빌드 & 실행
@@ -51,6 +54,13 @@ make lint     # 린트 실행
 - `PORT`: 서버 포트 (기본: 8080)
 - `LOG_LEVEL`: debug, info, warn, error (기본: info)
 - `LOG_FORMAT`: text, json (기본: text)
+- `DATABASE_URL`: PostgreSQL 연결 URL (기본: `postgres://localhost:5432/gyeongdohalsaram?sslmode=disable`)
+
+## 워크플로우
+
+- 새 기능 계획 시 반드시 GitHub issue로 등록한 뒤 구현 시작
+- 커밋 메시지에 관련 issue 번호 포함: `feat: 기능 설명 (#이슈번호)`
+- 하나의 issue에 대한 작업은 하나의 브랜치에서 진행
 
 ## 코드 컨벤션
 
