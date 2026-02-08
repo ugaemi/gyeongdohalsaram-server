@@ -11,16 +11,15 @@ import (
 
 // LobbyHandler handles lobby-related messages.
 type LobbyHandler struct {
-	rm *room.Manager
-	// playerRooms tracks which room each client is in: client ID -> player ID
-	playerMap map[string]string // client ID -> player ID
+	rm     *room.Manager
+	router *Router
 }
 
 // NewLobbyHandler creates a new lobby handler.
-func NewLobbyHandler(rm *room.Manager) *LobbyHandler {
+func NewLobbyHandler(rm *room.Manager, router *Router) *LobbyHandler {
 	return &LobbyHandler{
-		rm:        rm,
-		playerMap: make(map[string]string),
+		rm:     rm,
+		router: router,
 	}
 }
 
@@ -44,7 +43,7 @@ func (h *LobbyHandler) HandleCreateRoom(client *ws.Client, msg ws.Message) {
 	r := h.rm.CreateRoom()
 	player := game.NewPlayer(req.Nickname)
 	r.AddPlayer(player, client)
-	h.playerMap[client.ID] = player.ID
+	h.router.RegisterPlayer(client.ID, player.ID)
 
 	resp, _ := ws.NewMessage(ws.TypeCreateRoom, createRoomResponse{
 		Code:     r.Code,
@@ -79,7 +78,7 @@ func (h *LobbyHandler) HandleJoinRoom(client *ws.Client, msg ws.Message) {
 		client.SendMessage(ws.NewErrorMessage("room is full"))
 		return
 	}
-	h.playerMap[client.ID] = player.ID
+	h.router.RegisterPlayer(client.ID, player.ID)
 
 	resp, _ := ws.NewMessage(ws.TypeJoinRoom, createRoomResponse{
 		Code:     r.Code,
@@ -104,7 +103,7 @@ func (h *LobbyHandler) HandleSelectTeam(client *ws.Client, msg ws.Message) {
 		return
 	}
 
-	playerID := h.playerMap[client.ID]
+	playerID := h.router.GetPlayerID(client.ID)
 	r := h.rm.FindRoomByPlayerID(playerID)
 	if r == nil {
 		client.SendMessage(ws.NewErrorMessage("not in a room"))
@@ -135,7 +134,7 @@ func (h *LobbyHandler) HandleSelectTeam(client *ws.Client, msg ws.Message) {
 
 // HandlePlayerReady handles player ready status.
 func (h *LobbyHandler) HandlePlayerReady(client *ws.Client, msg ws.Message) {
-	playerID := h.playerMap[client.ID]
+	playerID := h.router.GetPlayerID(client.ID)
 	r := h.rm.FindRoomByPlayerID(playerID)
 	if r == nil {
 		client.SendMessage(ws.NewErrorMessage("not in a room"))
@@ -170,8 +169,8 @@ func (h *LobbyHandler) HandleDisconnect(client *ws.Client) {
 }
 
 func (h *LobbyHandler) removePlayer(client *ws.Client) {
-	playerID, ok := h.playerMap[client.ID]
-	if !ok {
+	playerID := h.router.GetPlayerID(client.ID)
+	if playerID == "" {
 		return
 	}
 
@@ -185,7 +184,7 @@ func (h *LobbyHandler) removePlayer(client *ws.Client) {
 		}
 	}
 
-	delete(h.playerMap, client.ID)
+	h.router.UnregisterPlayer(client.ID)
 	slog.Info("player left", "player", playerID)
 }
 

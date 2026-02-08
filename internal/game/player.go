@@ -1,6 +1,10 @@
 package game
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Role int
 
@@ -43,13 +47,14 @@ func (s PlayerState) String() string {
 }
 
 type Player struct {
-	ID       string      `json:"id"`
-	Nickname string      `json:"nickname"`
-	Role     Role        `json:"role"`
-	State    PlayerState `json:"state"`
-	X        float64     `json:"x"`
-	Y        float64     `json:"y"`
-	Ready    bool        `json:"ready"`
+	ID           string      `json:"id"`
+	Nickname     string      `json:"nickname"`
+	Role         Role        `json:"role"`
+	State        PlayerState `json:"state"`
+	X            float64     `json:"x"`
+	Y            float64     `json:"y"`
+	Ready        bool        `json:"ready"`
+	LastMoveTime time.Time   `json:"-"`
 }
 
 func NewPlayer(nickname string) *Player {
@@ -99,4 +104,5 @@ func (p *Player) Reset() {
 	p.Ready = false
 	p.X = 0
 	p.Y = 0
+	p.LastMoveTime = time.Time{}
 }
