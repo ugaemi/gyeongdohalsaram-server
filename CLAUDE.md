@@ -22,6 +22,7 @@ internal/
   game/                      # 게임 로직, 상수, 플레이어
   handler/                   # 메시지 라우팅 및 핸들러
   account/                   # 계정 모델
+  auth/                      # 인증 (Game Center 서명 검증)
   store/                     # DB 저장소 (PostgreSQL)
 ```
 
@@ -55,10 +56,13 @@ make lint     # 린트 실행
 - `LOG_LEVEL`: debug, info, warn, error (기본: info)
 - `LOG_FORMAT`: text, json (기본: text)
 - `DATABASE_URL`: PostgreSQL 연결 URL (기본: `postgres://localhost:5432/gyeongdohalsaram?sslmode=disable`)
+- `GC_BUNDLE_IDS`: 허용 Game Center 번들 ID, 콤마 구분 (미설정 시 모든 번들 허용)
+- `GC_TIMESTAMP_TOLERANCE`: Game Center 타임스탬프 허용 오차 초 (기본: 300)
 
 ## 워크플로우
 
 - 새 기능 계획 시 반드시 GitHub issue로 등록한 뒤 구현 시작
+- 모든 issue는 `gyeongdohalsaram mvp` GitHub Project에 연결
 - 커밋 메시지에 관련 issue 번호 포함: `feat: 기능 설명 (#이슈번호)`
 - 하나의 issue에 대한 작업은 하나의 브랜치에서 진행
 
