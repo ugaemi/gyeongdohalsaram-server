@@ -22,6 +22,7 @@ const (
 	TypePlayerMove = "player_move"
 	TypeGameState  = "game_state"
 	TypeGameOver   = "game_over"
+	TypeGameStart  = "game_start"
 )
 
 // Message types - Auth

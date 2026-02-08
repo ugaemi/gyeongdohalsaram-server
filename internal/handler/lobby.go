@@ -146,6 +146,17 @@ func (h *LobbyHandler) HandlePlayerReady(client *ws.Client, msg ws.Message) {
 	h.broadcastRoomInfo(r)
 
 	slog.Info("player ready", "player", playerID, "room", r.Code)
+
+	// Check if all players are ready to start
+	if r.AllReady() {
+		// Broadcast game_start before starting the loop
+		startMsg, _ := ws.NewMessage(ws.TypeGameStart, gameStartResponse{
+			Players: r.GetPlayerList(),
+		})
+		r.BroadcastMessage(startMsg)
+		r.StartGame()
+		slog.Info("all players ready, game starting", "room", r.Code)
+	}
 }
 
 // HandleLeaveRoom handles a player leaving a room.
@@ -176,6 +187,10 @@ func (h *LobbyHandler) removePlayer(client *ws.Client) {
 
 	delete(h.playerMap, client.ID)
 	slog.Info("player left", "player", playerID)
+}
+
+type gameStartResponse struct {
+	Players []*game.Player `json:"players"`
 }
 
 type roomInfoResponse struct {
