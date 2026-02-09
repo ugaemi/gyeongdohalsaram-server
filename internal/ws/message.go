@@ -23,6 +23,7 @@ const (
 	TypeGameState  = "game_state"
 	TypeGameOver   = "game_over"
 	TypeGameStart  = "game_start"
+	TypeArrest     = "arrest"
 )
 
 // Message types - Auth

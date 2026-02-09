@@ -228,6 +228,11 @@ func (r *Room) RemainingTime() time.Duration {
 	return r.remainingTime
 }
 
+type arrestMessage struct {
+	PoliceID string `json:"police_id"`
+	ThiefID  string `json:"thief_id"`
+}
+
 type gameOverMessage struct {
 	Winner string `json:"winner"`
 }
@@ -259,9 +264,21 @@ func (r *Room) gameLoop() {
 			r.remainingTime -= game.TickInterval
 			timerExpired := r.remainingTime <= 0
 
-			// Build game state snapshot
-			players := make([]playerStateEntry, 0, len(r.Players))
+			// Build player list for game logic
 			playerList := make([]*game.Player, 0, len(r.Players))
+			for _, p := range r.Players {
+				playerList = append(playerList, p)
+			}
+
+			// Process arrest mechanics
+			dt := game.TickInterval.Seconds()
+			arrestEvents := game.ProcessArrests(playerList, dt)
+
+			// Collision detection (Phase 4 will process rescue mechanics)
+			_ = game.FindJailRescueCandidates(playerList, game.JailX, game.JailY)
+
+			// Build game state snapshot (after arrest processing so state is up-to-date)
+			players := make([]playerStateEntry, 0, len(r.Players))
 			for _, p := range r.Players {
 				players = append(players, playerStateEntry{
 					ID:    p.ID,
@@ -270,18 +287,22 @@ func (r *Room) gameLoop() {
 					State: p.State.String(),
 					Role:  p.Role.String(),
 				})
-				playerList = append(playerList, p)
 			}
-
-			// Collision detection (Phase 4 will process arrest/rescue mechanics)
-			_ = game.FindArrestPairs(playerList)
-			_ = game.FindJailRescueCandidates(playerList, game.JailX, game.JailY)
 
 			remaining := r.remainingTime.Seconds()
 			if remaining < 0 {
 				remaining = 0
 			}
 			r.mu.Unlock()
+
+			// Broadcast arrest events
+			for _, evt := range arrestEvents {
+				arrestMsg, _ := ws.NewMessage(ws.TypeArrest, arrestMessage{
+					PoliceID: evt.PoliceID,
+					ThiefID:  evt.ThiefID,
+				})
+				r.BroadcastMessage(arrestMsg)
+			}
 
 			// Broadcast game state
 			msg, _ := ws.NewMessage(ws.TypeGameState, gameStateMessage{

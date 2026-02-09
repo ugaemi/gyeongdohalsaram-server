@@ -47,14 +47,15 @@ func (s PlayerState) String() string {
 }
 
 type Player struct {
-	ID           string      `json:"id"`
-	Nickname     string      `json:"nickname"`
-	Role         Role        `json:"role"`
-	State        PlayerState `json:"state"`
-	X            float64     `json:"x"`
-	Y            float64     `json:"y"`
-	Ready        bool        `json:"ready"`
-	LastMoveTime time.Time   `json:"-"`
+	ID              string      `json:"id"`
+	Nickname        string      `json:"nickname"`
+	Role            Role        `json:"role"`
+	State           PlayerState `json:"state"`
+	X               float64     `json:"x"`
+	Y               float64     `json:"y"`
+	Ready           bool        `json:"ready"`
+	LastMoveTime    time.Time   `json:"-"`
+	ArrestProgress  float64     `json:"-"`
 }
 
 func NewPlayer(nickname string) *Player {
@@ -75,8 +76,11 @@ func (p *Player) SetPosition(x, y float64) {
 	p.Y = y
 }
 
+// Arrest marks the player as arrested and moves them to the jail position.
 func (p *Player) Arrest() {
 	p.State = StateArrested
+	p.X = JailX
+	p.Y = JailY
 }
 
 func (p *Player) Release() {
@@ -105,4 +109,5 @@ func (p *Player) Reset() {
 	p.X = 0
 	p.Y = 0
 	p.LastMoveTime = time.Time{}
+	p.ArrestProgress = 0
 }
