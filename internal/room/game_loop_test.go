@@ -62,7 +62,8 @@ func setupTestRoom() (*Room, []*ws.Client) {
 
 func TestStartGame_SetsState(t *testing.T) {
 	r, _ := setupTestRoom()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 	defer r.StopGame(game.WinNone)
 
 	assert.Equal(t, game.StatePlaying, r.State)
@@ -70,7 +71,8 @@ func TestStartGame_SetsState(t *testing.T) {
 
 func TestStartGame_AssignsSpawnPositions(t *testing.T) {
 	r, _ := setupTestRoom()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 	defer r.StopGame(game.WinNone)
 
 	r.mu.RLock()
@@ -84,7 +86,8 @@ func TestStartGame_AssignsSpawnPositions(t *testing.T) {
 
 func TestStartGame_SetsRemainingTime(t *testing.T) {
 	r, _ := setupTestRoom()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 	defer r.StopGame(game.WinNone)
 
 	remaining := r.RemainingTime()
@@ -94,7 +97,8 @@ func TestStartGame_SetsRemainingTime(t *testing.T) {
 
 func TestStopGame_TransitionsToEnded(t *testing.T) {
 	r, _ := setupTestRoom()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 
 	// Let one tick happen
 	time.Sleep(game.TickInterval + 10*time.Millisecond)
@@ -106,7 +110,8 @@ func TestStopGame_TransitionsToEnded(t *testing.T) {
 
 func TestStopGame_BroadcastsGameOver(t *testing.T) {
 	r, clients := setupTestRoom()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 
 	// Let a tick happen
 	time.Sleep(game.TickInterval + 10*time.Millisecond)
@@ -129,7 +134,8 @@ func TestStopGame_BroadcastsGameOver(t *testing.T) {
 
 func TestGameLoop_BroadcastsGameState(t *testing.T) {
 	r, clients := setupTestRoom()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 	defer r.StopGame(game.WinNone)
 
 	// Wait for at least one tick
@@ -181,7 +187,8 @@ func TestGameLoop_TimerExpiry(t *testing.T) {
 
 func TestStopGame_DoubleStopSafe(t *testing.T) {
 	r, _ := setupTestRoom()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 
 	time.Sleep(game.TickInterval + 10*time.Millisecond)
 

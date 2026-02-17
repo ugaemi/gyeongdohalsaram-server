@@ -72,7 +72,8 @@ func setupGameplayTest() (*Router, *room.Room, *ws.Client, chan sentMessage) {
 
 func TestHandlePlayerMove_ValidMove(t *testing.T) {
 	router, r, client, ch := setupGameplayTest()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 	defer r.StopGame(game.WinNone)
 
 	// Wait a moment to allow some elapsed time for speed validation
@@ -109,7 +110,8 @@ func TestHandlePlayerMove_ValidMove(t *testing.T) {
 
 func TestHandlePlayerMove_OutOfBounds_Clamped(t *testing.T) {
 	router, r, client, ch := setupGameplayTest()
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 	defer r.StopGame(game.WinNone)
 
 	// Set player position near edge for speed validation
@@ -142,7 +144,8 @@ func TestHandlePlayerMove_SpeedViolation(t *testing.T) {
 	router, r, client, ch := setupGameplayTest()
 
 	// Set up room in playing state manually to control LastMoveTime
-	r.StartGame()
+	r.PrepareGame()
+	r.StartGameLoop()
 	defer r.StopGame(game.WinNone)
 
 	// Set LastMoveTime to now so elapsed time is very small

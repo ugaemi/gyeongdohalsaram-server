@@ -188,8 +188,9 @@ func (r *Room) Reset() {
 	}
 }
 
-// StartGame transitions the room to playing state and starts the game loop.
-func (r *Room) StartGame() {
+// PrepareGame assigns spawn positions and transitions to playing state.
+// Must be called before broadcasting game_start so clients receive correct positions.
+func (r *Room) PrepareGame() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -207,7 +208,11 @@ func (r *Room) StartGame() {
 		r.Players[id].SetPosition(pos.X, pos.Y)
 	}
 
-	slog.Info("game started", "room", r.Code, "players", len(r.Players))
+	slog.Info("game prepared", "room", r.Code, "players", len(r.Players))
+}
+
+// StartGameLoop starts the game tick loop. Must be called after PrepareGame and broadcasting game_start.
+func (r *Room) StartGameLoop() {
 	go r.gameLoop()
 }
 
