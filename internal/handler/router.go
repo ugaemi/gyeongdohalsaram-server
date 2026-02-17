@@ -59,7 +59,7 @@ func (r *Router) HandleMessage(cm *ws.ClientMessage) {
 	var msg ws.Message
 	if err := json.Unmarshal(cm.Data, &msg); err != nil {
 		slog.Warn("invalid message format", "client", cm.Client.ID, "error", err)
-		cm.Client.SendMessage(ws.NewErrorMessage("invalid message format"))
+		cm.Client.SendMessage(ws.NewErrorMessage("잘못된 메시지 형식입니다"))
 		return
 	}
 
@@ -71,7 +71,7 @@ func (r *Router) HandleMessage(cm *ws.ClientMessage) {
 
 	// Auth guard: block unauthenticated clients
 	if !cm.Client.Authenticated {
-		cm.Client.SendMessage(ws.NewErrorMessage("authentication required"))
+		cm.Client.SendMessage(ws.NewErrorMessage("인증이 필요합니다"))
 		return
 	}
 
@@ -98,7 +98,7 @@ func (r *Router) HandleMessage(cm *ws.ClientMessage) {
 
 	default:
 		slog.Warn("unknown message type", "type", msg.Type, "client", cm.Client.ID)
-		cm.Client.SendMessage(ws.NewErrorMessage("unknown message type: " + msg.Type))
+		cm.Client.SendMessage(ws.NewErrorMessage("알 수 없는 메시지 타입: " + msg.Type))
 	}
 }
 

@@ -36,7 +36,7 @@ type playerMoveResponse struct {
 func (h *GameplayHandler) HandlePlayerMove(client *ws.Client, msg ws.Message) {
 	var req playerMoveRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
-		client.SendMessage(ws.NewErrorMessage("invalid move data"))
+		client.SendMessage(ws.NewErrorMessage("잘못된 이동 데이터입니다"))
 		return
 	}
 
@@ -46,20 +46,20 @@ func (h *GameplayHandler) HandlePlayerMove(client *ws.Client, msg ws.Message) {
 	// Resolve player ID via Router
 	playerID := h.router.GetPlayerID(client.ID)
 	if playerID == "" {
-		client.SendMessage(ws.NewErrorMessage("not in a room"))
+		client.SendMessage(ws.NewErrorMessage("방에 참가하고 있지 않습니다"))
 		return
 	}
 
 	// Find the player's room
 	r := h.rm.FindRoomByPlayerID(playerID)
 	if r == nil {
-		client.SendMessage(ws.NewErrorMessage("not in a room"))
+		client.SendMessage(ws.NewErrorMessage("방에 참가하고 있지 않습니다"))
 		return
 	}
 
 	// Only allow movement during playing state
 	if r.State != game.StatePlaying {
-		client.SendMessage(ws.NewErrorMessage("game is not in progress"))
+		client.SendMessage(ws.NewErrorMessage("게임이 진행 중이 아닙니다"))
 		return
 	}
 
@@ -79,7 +79,7 @@ func (h *GameplayHandler) HandlePlayerMove(client *ws.Client, msg ws.Message) {
 	maxDist := game.MoveSpeed * elapsed * 1.5 // 50% tolerance for network jitter
 	if dist > maxDist {
 		slog.Warn("speed violation", "player", playerID, "dist", dist, "maxDist", maxDist)
-		client.SendMessage(ws.NewErrorMessage("movement too fast"))
+		client.SendMessage(ws.NewErrorMessage("이동 속도가 너무 빠릅니다"))
 		return
 	}
 

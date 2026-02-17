@@ -57,13 +57,13 @@ type authFailureResponse struct {
 // HandleAuthenticate processes an authentication request.
 func (h *AuthHandler) HandleAuthenticate(client *ws.Client, msg ws.Message) {
 	if client.Authenticated {
-		client.SendMessage(ws.NewErrorMessage("already authenticated"))
+		client.SendMessage(ws.NewErrorMessage("이미 인증되었습니다"))
 		return
 	}
 
 	var req authenticateRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
-		h.sendFailure(client, "invalid auth data")
+		h.sendFailure(client, "잘못된 인증 데이터입니다")
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *AuthHandler) HandleAuthenticate(client *ws.Client, msg ws.Message) {
 	case "guest":
 		h.handleGuest(client, req)
 	default:
-		h.sendFailure(client, "unknown auth method: "+req.Method)
+		h.sendFailure(client, "알 수 없는 인증 방식: "+req.Method)
 	}
 }
 
@@ -92,7 +92,7 @@ func (h *AuthHandler) handleGameCenter(client *ws.Client, req authenticateReques
 
 	if err := h.verifier.Verify(ctx, cred); err != nil {
 		slog.Warn("game center verification failed", "error", err, "client", client.ID)
-		h.sendFailure(client, "verification failed")
+		h.sendFailure(client, "인증 검증에 실패했습니다")
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *AuthHandler) handleGameCenter(client *ws.Client, req authenticateReques
 	acc, err := h.store.FindByGameCenterID(ctx, req.PlayerID)
 	if err != nil {
 		slog.Error("failed to find account", "error", err)
-		h.sendFailure(client, "internal error")
+		h.sendFailure(client, "서버 내부 오류입니다")
 		return
 	}
 
@@ -108,7 +108,7 @@ func (h *AuthHandler) handleGameCenter(client *ws.Client, req authenticateReques
 		acc = account.NewGameCenterAccount(req.PlayerID, req.Nickname)
 		if err := h.store.Create(ctx, acc); err != nil {
 			slog.Error("failed to create account", "error", err)
-			h.sendFailure(client, "internal error")
+			h.sendFailure(client, "서버 내부 오류입니다")
 			return
 		}
 		slog.Info("new game center account created", "account_id", acc.ID, "gc_id", req.PlayerID)
@@ -121,7 +121,7 @@ func (h *AuthHandler) handleGameCenter(client *ws.Client, req authenticateReques
 
 func (h *AuthHandler) handleGuest(client *ws.Client, req authenticateRequest) {
 	if req.Nickname == "" {
-		h.sendFailure(client, "nickname is required for guest login")
+		h.sendFailure(client, "게스트 로그인에는 닉네임이 필요합니다")
 		return
 	}
 
@@ -131,7 +131,7 @@ func (h *AuthHandler) handleGuest(client *ws.Client, req authenticateRequest) {
 	acc := account.NewGuestAccount(req.Nickname)
 	if err := h.store.Create(ctx, acc); err != nil {
 		slog.Error("failed to create guest account", "error", err)
-		h.sendFailure(client, "internal error")
+		h.sendFailure(client, "서버 내부 오류입니다")
 		return
 	}
 
@@ -166,7 +166,7 @@ func (h *AuthHandler) StartAuthTimeout(client *ws.Client) {
 	time.AfterFunc(authTimeout, func() {
 		if !client.Authenticated {
 			slog.Info("auth timeout, closing connection", "client", client.ID)
-			client.SendMessage(ws.NewErrorMessage("authentication timeout"))
+			client.SendMessage(ws.NewErrorMessage("인증 시간이 초과되었습니다"))
 			client.Conn.Close()
 		}
 	})

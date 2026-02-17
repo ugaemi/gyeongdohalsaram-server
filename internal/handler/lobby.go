@@ -36,7 +36,7 @@ type createRoomResponse struct {
 func (h *LobbyHandler) HandleCreateRoom(client *ws.Client, msg ws.Message) {
 	var req createRoomRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil || req.Nickname == "" {
-		client.SendMessage(ws.NewErrorMessage("nickname is required"))
+		client.SendMessage(ws.NewErrorMessage("닉네임을 입력해주세요"))
 		return
 	}
 
@@ -63,19 +63,19 @@ type joinRoomRequest struct {
 func (h *LobbyHandler) HandleJoinRoom(client *ws.Client, msg ws.Message) {
 	var req joinRoomRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil || req.Code == "" || req.Nickname == "" {
-		client.SendMessage(ws.NewErrorMessage("code and nickname are required"))
+		client.SendMessage(ws.NewErrorMessage("방 코드와 닉네임을 입력해주세요"))
 		return
 	}
 
 	r := h.rm.GetRoom(req.Code)
 	if r == nil {
-		client.SendMessage(ws.NewErrorMessage("room not found"))
+		client.SendMessage(ws.NewErrorMessage("방을 찾을 수 없습니다"))
 		return
 	}
 
 	player := game.NewPlayer(req.Nickname)
 	if !r.AddPlayer(player, client) {
-		client.SendMessage(ws.NewErrorMessage("room is full"))
+		client.SendMessage(ws.NewErrorMessage("방이 가득 찼습니다"))
 		return
 	}
 	h.router.RegisterPlayer(client.ID, player.ID)
@@ -99,19 +99,19 @@ type randomJoinRequest struct {
 func (h *LobbyHandler) HandleRandomJoin(client *ws.Client, msg ws.Message) {
 	var req randomJoinRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil || req.Nickname == "" {
-		client.SendMessage(ws.NewErrorMessage("nickname is required"))
+		client.SendMessage(ws.NewErrorMessage("닉네임을 입력해주세요"))
 		return
 	}
 
 	r := h.rm.FindAvailableRoom()
 	if r == nil {
-		client.SendMessage(ws.NewErrorMessage("no available rooms"))
+		client.SendMessage(ws.NewErrorMessage("입장 가능한 방이 없습니다"))
 		return
 	}
 
 	player := game.NewPlayer(req.Nickname)
 	if !r.AddPlayer(player, client) {
-		client.SendMessage(ws.NewErrorMessage("room is full"))
+		client.SendMessage(ws.NewErrorMessage("방이 가득 찼습니다"))
 		return
 	}
 	h.router.RegisterPlayer(client.ID, player.ID)
@@ -135,14 +135,14 @@ type selectTeamRequest struct {
 func (h *LobbyHandler) HandleSelectTeam(client *ws.Client, msg ws.Message) {
 	var req selectTeamRequest
 	if err := json.Unmarshal(msg.Data, &req); err != nil {
-		client.SendMessage(ws.NewErrorMessage("invalid team selection"))
+		client.SendMessage(ws.NewErrorMessage("잘못된 팀 선택입니다"))
 		return
 	}
 
 	playerID := h.router.GetPlayerID(client.ID)
 	r := h.rm.FindRoomByPlayerID(playerID)
 	if r == nil {
-		client.SendMessage(ws.NewErrorMessage("not in a room"))
+		client.SendMessage(ws.NewErrorMessage("방에 참가하고 있지 않습니다"))
 		return
 	}
 
@@ -153,12 +153,12 @@ func (h *LobbyHandler) HandleSelectTeam(client *ws.Client, msg ws.Message) {
 	case "thief":
 		role = game.RoleThief
 	default:
-		client.SendMessage(ws.NewErrorMessage("invalid role"))
+		client.SendMessage(ws.NewErrorMessage("잘못된 역할입니다"))
 		return
 	}
 
 	if !r.CanSelectRole(role) {
-		client.SendMessage(ws.NewErrorMessage("team is full"))
+		client.SendMessage(ws.NewErrorMessage("해당 팀이 가득 찼습니다"))
 		return
 	}
 
@@ -173,7 +173,7 @@ func (h *LobbyHandler) HandlePlayerReady(client *ws.Client, msg ws.Message) {
 	playerID := h.router.GetPlayerID(client.ID)
 	r := h.rm.FindRoomByPlayerID(playerID)
 	if r == nil {
-		client.SendMessage(ws.NewErrorMessage("not in a room"))
+		client.SendMessage(ws.NewErrorMessage("방에 참가하고 있지 않습니다"))
 		return
 	}
 
@@ -205,12 +205,12 @@ func (h *LobbyHandler) HandleReturnToLobby(client *ws.Client, _ ws.Message) {
 	playerID := h.router.GetPlayerID(client.ID)
 	r := h.rm.FindRoomByPlayerID(playerID)
 	if r == nil {
-		client.SendMessage(ws.NewErrorMessage("not in a room"))
+		client.SendMessage(ws.NewErrorMessage("방에 참가하고 있지 않습니다"))
 		return
 	}
 
 	if r.State != game.StateEnded {
-		client.SendMessage(ws.NewErrorMessage("game is not ended"))
+		client.SendMessage(ws.NewErrorMessage("게임이 아직 끝나지 않았습니다"))
 		return
 	}
 
