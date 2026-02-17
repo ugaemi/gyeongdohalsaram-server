@@ -99,21 +99,41 @@ func (r *Room) CanSelectRole(role game.Role) bool {
 	return true
 }
 
-// AllReady checks if all players are ready and minimum players are met.
-func (r *Room) AllReady() bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+// SetPlayerReady sets a player's ready status and returns whether all players are ready.
+// This must be used instead of setting Ready directly to avoid race conditions.
+func (r *Room) SetPlayerReady(playerID string, ready bool) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
+	if p, ok := r.Players[playerID]; ok {
+		p.Ready = ready
+	}
+
+	return r.allReady()
+}
+
+// allReady checks if all players are ready and team composition is valid.
+// Caller must hold r.mu.
+func (r *Room) allReady() bool {
 	if len(r.Players) < game.MinPlayers {
 		return false
 	}
 
+	policeCount := 0
+	thiefCount := 0
 	for _, p := range r.Players {
 		if !p.Ready || p.Role == game.RoleNone {
 			return false
 		}
+		switch p.Role {
+		case game.RolePolice:
+			policeCount++
+		case game.RoleThief:
+			thiefCount++
+		}
 	}
-	return true
+
+	return policeCount >= 1 && thiefCount >= 1
 }
 
 // GetPlayerList returns a slice of all players.

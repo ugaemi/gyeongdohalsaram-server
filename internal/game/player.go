@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,6 +26,28 @@ func (r Role) String() string {
 	}
 }
 
+// MarshalJSON serializes Role as a string.
+func (r Role) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.String())
+}
+
+// UnmarshalJSON deserializes Role from a string.
+func (r *Role) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch s {
+	case "police":
+		*r = RolePolice
+	case "thief":
+		*r = RoleThief
+	default:
+		*r = RoleNone
+	}
+	return nil
+}
+
 type PlayerState int
 
 const (
@@ -44,6 +67,28 @@ func (s PlayerState) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+// MarshalJSON serializes PlayerState as a string.
+func (s PlayerState) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+// UnmarshalJSON deserializes PlayerState from a string.
+func (s *PlayerState) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err != nil {
+		return err
+	}
+	switch str {
+	case "arrested":
+		*s = StateArrested
+	case "invincible":
+		*s = StateInvincible
+	default:
+		*s = StateFree
+	}
+	return nil
 }
 
 type Player struct {

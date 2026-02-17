@@ -141,13 +141,13 @@ func (h *LobbyHandler) HandlePlayerReady(client *ws.Client, msg ws.Message) {
 		return
 	}
 
-	r.Players[playerID].Ready = true
+	allReady := r.SetPlayerReady(playerID, true)
 	h.broadcastRoomInfo(r)
 
 	slog.Info("player ready", "player", playerID, "room", r.Code)
 
 	// Check if all players are ready to start
-	if r.AllReady() {
+	if allReady {
 		// Broadcast game_start before starting the loop
 		startMsg, _ := ws.NewMessage(ws.TypeGameStart, gameStartResponse{
 			Players: r.GetPlayerList(),
