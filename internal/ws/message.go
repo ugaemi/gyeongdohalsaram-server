@@ -14,7 +14,8 @@ const (
 	TypeJoinRoom   = "join_room"
 	TypeLeaveRoom  = "leave_room"
 	TypeSelectTeam = "select_team"
-	TypePlayerReady = "player_ready"
+	TypePlayerReady   = "player_ready"
+	TypeReturnToLobby = "return_to_lobby"
 )
 
 // Message types - Gameplay

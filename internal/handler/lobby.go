@@ -158,6 +158,26 @@ func (h *LobbyHandler) HandlePlayerReady(client *ws.Client, msg ws.Message) {
 	}
 }
 
+// HandleReturnToLobby handles returning all players to lobby after game ends.
+func (h *LobbyHandler) HandleReturnToLobby(client *ws.Client, _ ws.Message) {
+	playerID := h.router.GetPlayerID(client.ID)
+	r := h.rm.FindRoomByPlayerID(playerID)
+	if r == nil {
+		client.SendMessage(ws.NewErrorMessage("not in a room"))
+		return
+	}
+
+	if r.State != game.StateEnded {
+		client.SendMessage(ws.NewErrorMessage("game is not ended"))
+		return
+	}
+
+	r.Reset()
+	h.broadcastRoomInfo(r)
+
+	slog.Info("room returned to lobby", "room", r.Code, "by", playerID)
+}
+
 // HandleLeaveRoom handles a player leaving a room.
 func (h *LobbyHandler) HandleLeaveRoom(client *ws.Client, _ ws.Message) {
 	h.removePlayer(client)
