@@ -151,9 +151,10 @@ func (h *LobbyHandler) HandlePlayerReady(client *ws.Client, msg ws.Message) {
 		// 1. Assign spawn positions first
 		r.PrepareGame()
 
-		// 2. Broadcast game_start with correct spawn positions
+		// 2. Broadcast game_start with correct spawn positions and map objects
 		startMsg, _ := ws.NewMessage(ws.TypeGameStart, gameStartResponse{
-			Players: r.GetPlayerList(),
+			Players:    r.GetPlayerList(),
+			MapObjects: r.MapObjects,
 		})
 		r.BroadcastMessage(startMsg)
 
@@ -214,7 +215,8 @@ func (h *LobbyHandler) removePlayer(client *ws.Client) {
 }
 
 type gameStartResponse struct {
-	Players []*game.Player `json:"players"`
+	Players    []*game.Player   `json:"players"`
+	MapObjects []game.MapObject `json:"map_objects"`
 }
 
 type roomInfoResponse struct {
