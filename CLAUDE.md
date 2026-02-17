@@ -55,7 +55,7 @@ make lint     # 린트 실행
 - `PORT`: 서버 포트 (기본: 8080)
 - `LOG_LEVEL`: debug, info, warn, error (기본: info)
 - `LOG_FORMAT`: text, json (기본: text)
-- `DATABASE_URL`: PostgreSQL 연결 URL (기본: `postgres://localhost:5432/gyeongdohalsaram?sslmode=disable`)
+- `DATABASE_URL`: PostgreSQL 연결 URL (기본: `postgres://postgres:postgres@localhost:5432/gyeongdohalsaram?sslmode=disable`)
 - `GC_BUNDLE_IDS`: 허용 Game Center 번들 ID, 콤마 구분 (미설정 시 모든 번들 허용)
 - `GC_TIMESTAMP_TOLERANCE`: Game Center 타임스탬프 허용 오차 초 (기본: 300)
 

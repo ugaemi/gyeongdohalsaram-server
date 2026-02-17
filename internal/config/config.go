@@ -23,7 +23,7 @@ func Load() *Config {
 		Port:                 getEnvInt("PORT", 8080),
 		LogLevel:             getEnv("LOG_LEVEL", "info"),
 		LogFormat:            getEnv("LOG_FORMAT", "text"),
-		DatabaseURL:          getEnv("DATABASE_URL", "postgres://localhost:5432/gyeongdohalsaram?sslmode=disable"),
+		DatabaseURL:          getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/gyeongdohalsaram?sslmode=disable"),
 		GCBundleIDs:          getEnvStringSlice("GC_BUNDLE_IDS"),
 		GCTimestampTolerance: time.Duration(getEnvInt("GC_TIMESTAMP_TOLERANCE", 300)) * time.Second,
 	}
