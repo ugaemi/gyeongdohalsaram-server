@@ -17,7 +17,8 @@ const (
 
 // Movement
 const (
-	MoveSpeed = 400.0 // pixels per second
+	MoveSpeed    = 400.0 // pixels per second
+	PlayerRadius = 50.0  // pixels, half of character sprite size
 )
 
 // Arrest mechanics
