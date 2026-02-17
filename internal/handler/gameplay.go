@@ -40,11 +40,8 @@ func (h *GameplayHandler) HandlePlayerMove(client *ws.Client, msg ws.Message) {
 		return
 	}
 
-	// Validate position is within map bounds
-	if req.X < 0 || req.X > game.MapWidth || req.Y < 0 || req.Y > game.MapHeight {
-		client.SendMessage(ws.NewErrorMessage("position out of bounds"))
-		return
-	}
+	// Clamp position within map bounds (accounting for player radius)
+	req.X, req.Y = game.ClampPosition(req.X, req.Y)
 
 	// Resolve player ID via Router
 	playerID := h.router.GetPlayerID(client.ID)

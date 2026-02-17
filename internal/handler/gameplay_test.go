@@ -107,24 +107,35 @@ func TestHandlePlayerMove_ValidMove(t *testing.T) {
 	assert.True(t, found, "should have received player_move message")
 }
 
-func TestHandlePlayerMove_OutOfBounds(t *testing.T) {
+func TestHandlePlayerMove_OutOfBounds_Clamped(t *testing.T) {
 	router, r, client, ch := setupGameplayTest()
 	r.StartGame()
 	defer r.StopGame(game.WinNone)
 
+	// Set player position near edge for speed validation
+	r.Players["player1"].X = game.PlayerRadius
+	r.Players["player1"].Y = 500
+	r.Players["player1"].LastMoveTime = time.Now().Add(-1 * time.Second)
+
 	drainCh(ch)
 
-	// Position out of bounds
+	// Position out of bounds — should be clamped, not rejected
 	data, _ := json.Marshal(playerMoveRequest{X: -100, Y: 500})
 	rawMsg, _ := json.Marshal(ws.Message{Type: ws.TypePlayerMove, Data: data})
 	router.HandleMessage(&ws.ClientMessage{Client: client, Data: rawMsg})
 
-	resp := readResponseWithTimeout(t, ch, 500*time.Millisecond)
-	// Skip game_state messages
-	for resp.Type == ws.TypeGameState {
-		resp = readResponseWithTimeout(t, ch, 500*time.Millisecond)
+	var found bool
+	for i := 0; i < 10; i++ {
+		resp := readResponseWithTimeout(t, ch, 500*time.Millisecond)
+		if resp.Type == ws.TypePlayerMove {
+			var moveResp playerMoveResponse
+			require.NoError(t, json.Unmarshal(resp.Data, &moveResp))
+			assert.Equal(t, game.PlayerRadius, moveResp.X, "X should be clamped to PlayerRadius")
+			found = true
+			break
+		}
 	}
-	assert.Equal(t, ws.TypeError, resp.Type)
+	assert.True(t, found, "should have received clamped player_move message")
 }
 
 func TestHandlePlayerMove_SpeedViolation(t *testing.T) {

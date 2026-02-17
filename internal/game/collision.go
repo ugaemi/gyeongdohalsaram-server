@@ -2,6 +2,26 @@ package game
 
 import "math"
 
+// ClampPosition clamps a position within map bounds, accounting for player radius.
+func ClampPosition(x, y float64) (float64, float64) {
+	minX := PlayerRadius
+	maxX := float64(MapWidth) - PlayerRadius
+	minY := PlayerRadius
+	maxY := float64(MapHeight) - PlayerRadius
+
+	if x < minX {
+		x = minX
+	} else if x > maxX {
+		x = maxX
+	}
+	if y < minY {
+		y = minY
+	} else if y > maxY {
+		y = maxY
+	}
+	return x, y
+}
+
 // Distance calculates the Euclidean distance between two points.
 func Distance(x1, y1, x2, y2 float64) float64 {
 	dx := x1 - x2
