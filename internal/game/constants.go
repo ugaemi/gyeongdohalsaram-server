@@ -35,7 +35,7 @@ const (
 
 // Game timing
 const (
-	GameDuration = 120 * time.Second
+	GameDuration = 180 * time.Second
 	TickRate     = 20 // ticks per second
 	TickInterval = time.Second / TickRate
 	ResetDelay   = 5 * time.Second
