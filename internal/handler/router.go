@@ -87,6 +87,8 @@ func (r *Router) HandleMessage(cm *ws.ClientMessage) {
 		r.lobby.HandleSelectTeam(cm.Client, msg)
 	case ws.TypePlayerReady:
 		r.lobby.HandlePlayerReady(cm.Client, msg)
+	case ws.TypeReturnToLobby:
+		r.lobby.HandleReturnToLobby(cm.Client, msg)
 
 	// Gameplay messages
 	case ws.TypePlayerMove:
