@@ -46,3 +46,12 @@ const (
 const (
 	MinSpawnDistance = 200.0 // minimum distance between spawned players
 )
+
+// Map objects (must match Godot client)
+const (
+	TreeCount          = 10
+	LakeCount          = 2
+	JailCount          = 1
+	ObjectMinDistance   = 300.0 // minimum distance between objects
+	ObjectSpawnRadius  = 300.0 // exclusion radius around map center
+)

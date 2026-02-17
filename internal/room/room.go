@@ -19,6 +19,9 @@ type Room struct {
 	// Client mapping: player ID -> ws client
 	clients map[string]*ws.Client
 
+	// Map objects generated at game start
+	MapObjects []game.MapObject `json:"-"`
+
 	// Game loop control
 	stopCh        chan struct{}
 	remainingTime time.Duration
@@ -208,7 +211,10 @@ func (r *Room) PrepareGame() {
 		r.Players[id].SetPosition(pos.X, pos.Y)
 	}
 
-	slog.Info("game prepared", "room", r.Code, "players", len(r.Players))
+	// Generate map objects so all clients see the same map
+	r.MapObjects = game.GenerateMapObjects()
+
+	slog.Info("game prepared", "room", r.Code, "players", len(r.Players), "objects", len(r.MapObjects))
 }
 
 // StartGameLoop starts the game tick loop. Must be called after PrepareGame and broadcasting game_start.
