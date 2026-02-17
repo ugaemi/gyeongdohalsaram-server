@@ -269,11 +269,12 @@ type gameStateMessage struct {
 }
 
 type playerStateEntry struct {
-	ID    string  `json:"id"`
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
-	State string  `json:"state"`
-	Role  string  `json:"role"`
+	ID          string  `json:"id"`
+	X           float64 `json:"x"`
+	Y           float64 `json:"y"`
+	State       string  `json:"state"`
+	Role        string  `json:"role"`
+	ArrestGauge float64 `json:"arrest_gauge"`
 }
 
 // gameLoop runs the game tick loop at TickRate frequency.
@@ -289,24 +290,75 @@ func (r *Room) gameLoop() {
 			r.mu.Lock()
 			r.remainingTime -= game.TickInterval
 			timerExpired := r.remainingTime <= 0
+			dt := game.TickInterval.Seconds()
 
-			// Build game state snapshot
-			players := make([]playerStateEntry, 0, len(r.Players))
 			playerList := make([]*game.Player, 0, len(r.Players))
 			for _, p := range r.Players {
-				players = append(players, playerStateEntry{
-					ID:    p.ID,
-					X:     p.X,
-					Y:     p.Y,
-					State: p.State.String(),
-					Role:  p.Role.String(),
-				})
 				playerList = append(playerList, p)
 			}
 
-			// Collision detection (Phase 4 will process arrest/rescue mechanics)
-			_ = game.FindArrestPairs(playerList)
-			_ = game.FindJailRescueCandidates(playerList, game.JailX, game.JailY)
+			// --- Invincibility timer ---
+			for _, p := range playerList {
+				if p.IsInvincible() {
+					p.InvincibleTimer -= game.TickInterval
+					if p.InvincibleTimer <= 0 {
+						p.State = game.StateFree
+						p.InvincibleTimer = 0
+					}
+				}
+			}
+
+			// --- Arrest mechanics (cumulative gauge) ---
+			arrestPairs := game.FindArrestPairs(playerList)
+			// Track which thieves are being chased this tick
+			chasedThieves := make(map[string]bool)
+			for _, pair := range arrestPairs {
+				thief := pair[1]
+				chasedThieves[thief.ID] = true
+				thief.ArrestGauge += dt
+				if thief.ArrestGauge >= game.ArrestDuration {
+					thief.Arrest()
+					slog.Info("thief arrested", "thief", thief.ID, "room", r.Code)
+				}
+			}
+			// Gauge is cumulative — do NOT reset when out of range
+
+			// --- Rescue mechanics (continuous gauge) ---
+			rescueCandidates := game.FindJailRescueCandidates(playerList, game.JailX, game.JailY)
+			rescuingThieves := make(map[string]bool)
+			for _, thief := range rescueCandidates {
+				rescuingThieves[thief.ID] = true
+				thief.RescueGauge += dt
+				if thief.RescueGauge >= game.RescueDuration {
+					// Release all arrested thieves
+					for _, p := range playerList {
+						if p.Role == game.RoleThief && p.IsArrested() {
+							p.Release()
+							slog.Info("thief rescued", "thief", p.ID, "room", r.Code)
+						}
+					}
+					thief.RescueGauge = 0
+				}
+			}
+			// Reset rescue gauge for thieves NOT near jail (continuous requirement)
+			for _, p := range playerList {
+				if p.Role == game.RoleThief && p.IsFree() && !rescuingThieves[p.ID] {
+					p.RescueGauge = 0
+				}
+			}
+
+			// Build game state snapshot (after processing mechanics)
+			players := make([]playerStateEntry, 0, len(r.Players))
+			for _, p := range playerList {
+				players = append(players, playerStateEntry{
+					ID:          p.ID,
+					X:           p.X,
+					Y:           p.Y,
+					State:       p.State.String(),
+					Role:        p.Role.String(),
+					ArrestGauge: p.ArrestGauge,
+				})
+			}
 
 			remaining := r.remainingTime.Seconds()
 			if remaining < 0 {

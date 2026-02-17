@@ -100,6 +100,13 @@ type Player struct {
 	Y            float64     `json:"y"`
 	Ready        bool        `json:"ready"`
 	LastMoveTime time.Time   `json:"-"`
+
+	// Arrest gauge: cumulative time a police has been in range (seconds).
+	ArrestGauge float64 `json:"arrest_gauge"`
+	// Rescue gauge: continuous time a free thief has been near jail (seconds).
+	RescueGauge float64 `json:"-"`
+	// InvincibleTimer: remaining invincibility time after rescue.
+	InvincibleTimer time.Duration `json:"-"`
 }
 
 func NewPlayer(nickname string) *Player {
@@ -122,10 +129,14 @@ func (p *Player) SetPosition(x, y float64) {
 
 func (p *Player) Arrest() {
 	p.State = StateArrested
+	p.ArrestGauge = 0
 }
 
 func (p *Player) Release() {
-	p.State = StateFree
+	p.State = StateInvincible
+	p.InvincibleTimer = InvincibleTime
+	p.ArrestGauge = 0
+	p.RescueGauge = 0
 }
 
 func (p *Player) SetInvincible() {
@@ -150,4 +161,7 @@ func (p *Player) Reset() {
 	p.X = 0
 	p.Y = 0
 	p.LastMoveTime = time.Time{}
+	p.ArrestGauge = 0
+	p.RescueGauge = 0
+	p.InvincibleTimer = 0
 }
