@@ -275,6 +275,7 @@ type playerStateEntry struct {
 	State       string  `json:"state"`
 	Role        string  `json:"role"`
 	ArrestGauge float64 `json:"arrest_gauge"`
+	RescueGauge float64 `json:"rescue_gauge"`
 }
 
 // gameLoop runs the game tick loop at TickRate frequency.
@@ -357,6 +358,7 @@ func (r *Room) gameLoop() {
 					State:       p.State.String(),
 					Role:        p.Role.String(),
 					ArrestGauge: p.ArrestGauge,
+					RescueGauge: p.RescueGauge,
 				})
 			}
 
