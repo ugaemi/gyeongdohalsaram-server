@@ -16,6 +16,7 @@ const (
 	TypeSelectTeam = "select_team"
 	TypePlayerReady   = "player_ready"
 	TypeReturnToLobby = "return_to_lobby"
+	TypeRandomJoin    = "random_join"
 )
 
 // Message types - Gameplay

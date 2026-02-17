@@ -2,7 +2,10 @@ package room
 
 import (
 	"log/slog"
+	"math/rand"
 	"sync"
+
+	"github.com/ugaemi/gyeongdohalsaram-server/internal/game"
 )
 
 // Manager manages all active rooms.
@@ -56,6 +59,28 @@ func (m *Manager) RoomCount() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return len(m.rooms)
+}
+
+// FindAvailableRoom returns a random room that is waiting and not full.
+func (m *Manager) FindAvailableRoom() *Room {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var available []*Room
+	for _, r := range m.rooms {
+		r.mu.RLock()
+		isWaiting := r.State == game.StateWaiting
+		hasSpace := len(r.Players) < game.MaxPlayers
+		r.mu.RUnlock()
+		if isWaiting && hasSpace {
+			available = append(available, r)
+		}
+	}
+
+	if len(available) == 0 {
+		return nil
+	}
+	return available[rand.Intn(len(available))]
 }
 
 // FindRoomByPlayerID finds the room containing a player.

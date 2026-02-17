@@ -91,6 +91,42 @@ func (h *LobbyHandler) HandleJoinRoom(client *ws.Client, msg ws.Message) {
 	slog.Info("player joined room", "player", player.Nickname, "room", r.Code)
 }
 
+type randomJoinRequest struct {
+	Nickname string `json:"nickname"`
+}
+
+// HandleRandomJoin handles joining a random available room.
+func (h *LobbyHandler) HandleRandomJoin(client *ws.Client, msg ws.Message) {
+	var req randomJoinRequest
+	if err := json.Unmarshal(msg.Data, &req); err != nil || req.Nickname == "" {
+		client.SendMessage(ws.NewErrorMessage("nickname is required"))
+		return
+	}
+
+	r := h.rm.FindAvailableRoom()
+	if r == nil {
+		client.SendMessage(ws.NewErrorMessage("no available rooms"))
+		return
+	}
+
+	player := game.NewPlayer(req.Nickname)
+	if !r.AddPlayer(player, client) {
+		client.SendMessage(ws.NewErrorMessage("room is full"))
+		return
+	}
+	h.router.RegisterPlayer(client.ID, player.ID)
+
+	resp, _ := ws.NewMessage(ws.TypeJoinRoom, createRoomResponse{
+		Code:     r.Code,
+		PlayerID: player.ID,
+	})
+	client.SendMessage(resp)
+
+	h.broadcastRoomInfo(r)
+
+	slog.Info("player random joined room", "player", player.Nickname, "room", r.Code)
+}
+
 type selectTeamRequest struct {
 	Role string `json:"role"` // "police" or "thief"
 }

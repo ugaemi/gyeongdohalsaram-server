@@ -81,6 +81,8 @@ func (r *Router) HandleMessage(cm *ws.ClientMessage) {
 		r.lobby.HandleCreateRoom(cm.Client, msg)
 	case ws.TypeJoinRoom:
 		r.lobby.HandleJoinRoom(cm.Client, msg)
+	case ws.TypeRandomJoin:
+		r.lobby.HandleRandomJoin(cm.Client, msg)
 	case ws.TypeLeaveRoom:
 		r.lobby.HandleLeaveRoom(cm.Client, msg)
 	case ws.TypeSelectTeam:
