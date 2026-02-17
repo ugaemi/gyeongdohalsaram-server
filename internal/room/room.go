@@ -99,7 +99,8 @@ func (r *Room) CanSelectRole(role game.Role) bool {
 	return true
 }
 
-// AllReady checks if all players are ready and minimum players are met.
+// AllReady checks if all players are ready and team composition is valid.
+// Requires: MinPlayers+, at least 1 police, at least 1 thief, all ready with role selected.
 func (r *Room) AllReady() bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -108,12 +109,21 @@ func (r *Room) AllReady() bool {
 		return false
 	}
 
+	policeCount := 0
+	thiefCount := 0
 	for _, p := range r.Players {
 		if !p.Ready || p.Role == game.RoleNone {
 			return false
 		}
+		switch p.Role {
+		case game.RolePolice:
+			policeCount++
+		case game.RoleThief:
+			thiefCount++
+		}
 	}
-	return true
+
+	return policeCount >= 1 && thiefCount >= 1
 }
 
 // GetPlayerList returns a slice of all players.
