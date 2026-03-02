@@ -116,6 +116,7 @@ func (h *LobbyHandler) HandleRandomJoin(client *ws.Client, msg ws.Message) {
 
 	r := h.rm.FindAvailableRoom(preferredRole)
 	if r == nil {
+		slog.Warn("no available room for random join", "player", req.Nickname, "preferred_role", req.PreferredRole, "total_rooms", h.rm.RoomCount())
 		client.SendMessage(ws.NewErrorMessage("입장 가능한 방이 없습니다"))
 		return
 	}

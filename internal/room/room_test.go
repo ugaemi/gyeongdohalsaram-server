@@ -83,6 +83,64 @@ func TestSetPlayerReady_RequiresRoleSelected(t *testing.T) {
 	assert.False(t, allReady, "should not be ready when a player has no role")
 }
 
+func TestFindAvailableRoom_WithPreferredRole(t *testing.T) {
+	m := NewManager()
+
+	// Police creates a room
+	r := m.CreateRoom()
+	c1 := mockClient("police-client")
+	p1 := &game.Player{ID: "p1", Nickname: "경찰", Role: game.RoleNone}
+	r.AddPlayer(p1, c1)
+
+	// Police selects role
+	p1.Role = game.RolePolice
+
+	tests := []struct {
+		name          string
+		preferredRole game.Role
+	}{
+		{"thief prefers thief", game.RoleThief},
+		{"police prefers police", game.RolePolice},
+		{"no preference", game.RoleNone},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			found := m.FindAvailableRoom(tt.preferredRole)
+			assert.NotNil(t, found, "should find available room for role %v", tt.preferredRole)
+			assert.Equal(t, r.Code, found.Code)
+		})
+	}
+}
+
+func TestFindAvailableRoom_NoRooms(t *testing.T) {
+	m := NewManager()
+	found := m.FindAvailableRoom(game.RoleThief)
+	assert.Nil(t, found, "should return nil when no rooms exist")
+}
+
+func TestFindAvailableRoom_PrefersRoleAvailable(t *testing.T) {
+	m := NewManager()
+
+	// Room 1: 2 police (full police cap)
+	r1 := m.CreateRoom()
+	r1.AddPlayer(&game.Player{ID: "p1", Role: game.RolePolice}, mockClient("c1"))
+	r1.AddPlayer(&game.Player{ID: "p2", Role: game.RolePolice}, mockClient("c2"))
+
+	// Room 2: 1 thief (police available)
+	r2 := m.CreateRoom()
+	r2.AddPlayer(&game.Player{ID: "p3", Role: game.RoleThief}, mockClient("c3"))
+
+	// Prefer police → should pick room 2 (police slot available)
+	found := m.FindAvailableRoom(game.RolePolice)
+	assert.NotNil(t, found)
+	assert.Equal(t, r2.Code, found.Code, "should prefer room where police slot is available")
+
+	// Prefer thief → both rooms work, but both should be found
+	found = m.FindAvailableRoom(game.RoleThief)
+	assert.NotNil(t, found, "should find room for thief")
+}
+
 func TestSetPlayerReady_AtomicReadyAndCheck(t *testing.T) {
 	r := NewRoom("TEST")
 	c1 := mockClient("client1")
