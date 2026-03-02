@@ -92,7 +92,8 @@ func (h *LobbyHandler) HandleJoinRoom(client *ws.Client, msg ws.Message) {
 }
 
 type randomJoinRequest struct {
-	Nickname string `json:"nickname"`
+	Nickname      string `json:"nickname"`
+	PreferredRole string `json:"preferred_role,omitempty"`
 }
 
 // HandleRandomJoin handles joining a random available room.
@@ -103,7 +104,17 @@ func (h *LobbyHandler) HandleRandomJoin(client *ws.Client, msg ws.Message) {
 		return
 	}
 
-	r := h.rm.FindAvailableRoom()
+	var preferredRole game.Role
+	switch req.PreferredRole {
+	case "police":
+		preferredRole = game.RolePolice
+	case "thief":
+		preferredRole = game.RoleThief
+	default:
+		preferredRole = game.RoleNone
+	}
+
+	r := h.rm.FindAvailableRoom(preferredRole)
 	if r == nil {
 		client.SendMessage(ws.NewErrorMessage("입장 가능한 방이 없습니다"))
 		return

@@ -62,21 +62,30 @@ func (m *Manager) RoomCount() int {
 }
 
 // FindAvailableRoom returns a random room that is waiting and not full.
-func (m *Manager) FindAvailableRoom() *Room {
+// If preferredRole is specified, it prefers rooms where that role is available.
+func (m *Manager) FindAvailableRoom(preferredRole game.Role) *Room {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	var available []*Room
+	var preferred []*Room
 	for _, r := range m.rooms {
 		r.mu.RLock()
 		isWaiting := r.State == game.StateWaiting
 		hasSpace := len(r.Players) < game.MaxPlayers
+		canSelect := preferredRole == game.RoleNone || r.canSelectRole(preferredRole)
 		r.mu.RUnlock()
 		if isWaiting && hasSpace {
 			available = append(available, r)
+			if canSelect {
+				preferred = append(preferred, r)
+			}
 		}
 	}
 
+	if len(preferred) > 0 {
+		return preferred[rand.Intn(len(preferred))]
+	}
 	if len(available) == 0 {
 		return nil
 	}

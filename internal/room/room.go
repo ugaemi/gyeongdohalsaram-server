@@ -102,6 +102,20 @@ func (r *Room) CanSelectRole(role game.Role) bool {
 	return true
 }
 
+// canSelectRole checks if a role can be selected. Caller must hold r.mu.
+func (r *Room) canSelectRole(role game.Role) bool {
+	if role == game.RolePolice {
+		count := 0
+		for _, p := range r.Players {
+			if p.Role == game.RolePolice {
+				count++
+			}
+		}
+		return count < game.MaxPolice
+	}
+	return true
+}
+
 // SetPlayerReady sets a player's ready status and returns whether all players are ready.
 // This must be used instead of setting Ready directly to avoid race conditions.
 func (r *Room) SetPlayerReady(playerID string, ready bool) bool {
