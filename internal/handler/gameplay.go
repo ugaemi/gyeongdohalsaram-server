@@ -76,7 +76,11 @@ func (h *GameplayHandler) HandlePlayerMove(client *ws.Client, msg ws.Message) {
 	}
 
 	dist := game.Distance(player.X, player.Y, req.X, req.Y)
-	maxDist := game.MoveSpeed * elapsed * 1.5 // 50% tolerance for network jitter
+	speed := game.MoveSpeed
+	if player.Boosted {
+		speed *= game.BoosterSpeedMult
+	}
+	maxDist := speed * elapsed * 1.5 // 50% tolerance for network jitter
 	if dist > maxDist {
 		slog.Warn("speed violation", "player", playerID, "dist", dist, "maxDist", maxDist)
 		client.SendMessage(ws.NewErrorMessage("이동 속도가 너무 빠릅니다"))

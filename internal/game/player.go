@@ -107,6 +107,10 @@ type Player struct {
 	RescueGauge float64 `json:"-"`
 	// InvincibleTimer: remaining invincibility time after rescue.
 	InvincibleTimer time.Duration `json:"-"`
+	// Boosted: whether the player has an active speed boost.
+	Boosted bool `json:"-"`
+	// BoostTimer: remaining boost duration.
+	BoostTimer time.Duration `json:"-"`
 }
 
 func NewPlayer(nickname string) *Player {
@@ -164,4 +168,6 @@ func (p *Player) Reset() {
 	p.ArrestGauge = 0
 	p.RescueGauge = 0
 	p.InvincibleTimer = 0
+	p.Boosted = false
+	p.BoostTimer = 0
 }

@@ -103,6 +103,11 @@ func (c *Client) SendMessage(msg Message) {
 		slog.Error("failed to marshal message", "error", err)
 		return
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Warn("client send channel closed, dropping message", "client", c.ID)
+		}
+	}()
 	select {
 	case c.Send <- data:
 	default:

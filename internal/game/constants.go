@@ -55,3 +55,12 @@ const (
 	ObjectMinDistance   = 300.0 // minimum distance between objects
 	ObjectSpawnRadius  = 300.0 // exclusion radius around map center
 )
+
+// Booster items
+const (
+	MaxBoosters       = 4
+	BoosterPickupRange = 60.0          // pixels
+	BoosterDuration    = 5 * time.Second
+	BoosterRespawnTime = 8 * time.Second
+	BoosterSpeedMult   = 1.3           // 30% speed increase
+)

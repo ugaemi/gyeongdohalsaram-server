@@ -22,6 +22,9 @@ type Room struct {
 	// Map objects generated at game start
 	MapObjects []game.MapObject `json:"-"`
 
+	// Booster manager
+	boosters *game.BoosterManager
+
 	// Game loop control
 	stopCh        chan struct{}
 	remainingTime time.Duration
@@ -228,6 +231,9 @@ func (r *Room) PrepareGame() {
 	// Generate map objects so all clients see the same map
 	r.MapObjects = game.GenerateMapObjects()
 
+	// Initialize boosters
+	r.boosters = game.NewBoosterManager(r.MapObjects)
+
 	slog.Info("game prepared", "room", r.Code, "players", len(r.Players), "objects", len(r.MapObjects))
 }
 
@@ -280,6 +286,7 @@ type gameOverMessage struct {
 type gameStateMessage struct {
 	RemainingTime float64            `json:"remaining_time"`
 	Players       []playerStateEntry `json:"players"`
+	Boosters      []*game.Booster    `json:"boosters"`
 }
 
 type playerStateEntry struct {
@@ -290,6 +297,7 @@ type playerStateEntry struct {
 	Role        string  `json:"role"`
 	ArrestGauge float64 `json:"arrest_gauge"`
 	RescueGauge float64 `json:"rescue_gauge"`
+	Boosted     bool    `json:"boosted"`
 }
 
 // gameLoop runs the game tick loop at TickRate frequency.
@@ -321,6 +329,13 @@ func (r *Room) gameLoop() {
 						p.InvincibleTimer = 0
 					}
 				}
+			}
+
+			// --- Booster mechanics ---
+			game.UpdatePlayerBoosts(playerList, game.TickInterval)
+			if r.boosters != nil {
+				r.boosters.Update(game.TickInterval)
+				r.boosters.CheckPickup(playerList)
 			}
 
 			// --- Arrest mechanics (cumulative gauge) ---
@@ -373,9 +388,14 @@ func (r *Room) gameLoop() {
 					Role:        p.Role.String(),
 					ArrestGauge: p.ArrestGauge,
 					RescueGauge: p.RescueGauge,
+					Boosted:     p.Boosted,
 				})
 			}
 
+			var boosters []*game.Booster
+			if r.boosters != nil {
+				boosters = r.boosters.Active
+			}
 			remaining := r.remainingTime.Seconds()
 			if remaining < 0 {
 				remaining = 0
@@ -386,6 +406,7 @@ func (r *Room) gameLoop() {
 			msg, _ := ws.NewMessage(ws.TypeGameState, gameStateMessage{
 				RemainingTime: remaining,
 				Players:       players,
+				Boosters:      boosters,
 			})
 			r.BroadcastMessage(msg)
 
