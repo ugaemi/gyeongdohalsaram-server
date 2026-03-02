@@ -111,6 +111,10 @@ type Player struct {
 	Boosted bool `json:"-"`
 	// BoostTimer: remaining boost duration.
 	BoostTimer time.Duration `json:"-"`
+	// Slowed: whether the player is slowed by a stumble stone.
+	Slowed bool `json:"-"`
+	// SlowTimer: remaining slow duration.
+	SlowTimer time.Duration `json:"-"`
 }
 
 func NewPlayer(nickname string) *Player {
@@ -170,4 +174,6 @@ func (p *Player) Reset() {
 	p.InvincibleTimer = 0
 	p.Boosted = false
 	p.BoostTimer = 0
+	p.Slowed = false
+	p.SlowTimer = 0
 }

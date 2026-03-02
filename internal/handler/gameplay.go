@@ -80,6 +80,9 @@ func (h *GameplayHandler) HandlePlayerMove(client *ws.Client, msg ws.Message) {
 	if player.Boosted {
 		speed *= game.BoosterSpeedMult
 	}
+	if player.Slowed {
+		speed *= game.StumbleSlowMult
+	}
 	maxDist := speed * elapsed * 1.5 // 50% tolerance for network jitter
 	if dist > maxDist {
 		slog.Warn("speed violation", "player", playerID, "dist", dist, "maxDist", maxDist)

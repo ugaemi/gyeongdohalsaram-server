@@ -64,3 +64,12 @@ const (
 	BoosterRespawnTime = 8 * time.Second
 	BoosterSpeedMult   = 1.3           // 30% speed increase
 )
+
+// Stumble stone items
+const (
+	MaxStumbleStones        = 3
+	StumbleStonePickupRange = 60.0           // pixels
+	StumbleSlowDuration     = 3 * time.Second
+	StumbleRespawnTime      = 10 * time.Second
+	StumbleSlowMult         = 0.7            // 30% speed decrease
+)

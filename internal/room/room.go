@@ -25,6 +25,9 @@ type Room struct {
 	// Booster manager
 	boosters *game.BoosterManager
 
+	// Stumble stone manager
+	stumbleStones *game.StumbleStoneManager
+
 	// Game loop control
 	stopCh        chan struct{}
 	remainingTime time.Duration
@@ -246,6 +249,9 @@ func (r *Room) PrepareGame() {
 	// Initialize boosters
 	r.boosters = game.NewBoosterManager(r.MapObjects)
 
+	// Initialize stumble stones
+	r.stumbleStones = game.NewStumbleStoneManager(r.MapObjects)
+
 	slog.Info("game prepared", "room", r.Code, "players", len(r.Players), "objects", len(r.MapObjects))
 }
 
@@ -296,9 +302,10 @@ type gameOverMessage struct {
 }
 
 type gameStateMessage struct {
-	RemainingTime float64            `json:"remaining_time"`
-	Players       []playerStateEntry `json:"players"`
-	Boosters      []*game.Booster    `json:"boosters"`
+	RemainingTime float64               `json:"remaining_time"`
+	Players       []playerStateEntry    `json:"players"`
+	Boosters      []*game.Booster       `json:"boosters"`
+	StumbleStones []*game.StumbleStone  `json:"stumble_stones"`
 }
 
 type playerStateEntry struct {
@@ -310,6 +317,7 @@ type playerStateEntry struct {
 	ArrestGauge float64 `json:"arrest_gauge"`
 	RescueGauge float64 `json:"rescue_gauge"`
 	Boosted     bool    `json:"boosted"`
+	Slowed      bool    `json:"slowed"`
 }
 
 // gameLoop runs the game tick loop at TickRate frequency.
@@ -348,6 +356,13 @@ func (r *Room) gameLoop() {
 			if r.boosters != nil {
 				r.boosters.Update(game.TickInterval)
 				r.boosters.CheckPickup(playerList)
+			}
+
+			// --- Stumble stone mechanics ---
+			game.UpdatePlayerSlows(playerList, game.TickInterval)
+			if r.stumbleStones != nil {
+				r.stumbleStones.Update(game.TickInterval)
+				r.stumbleStones.CheckPickup(playerList)
 			}
 
 			// --- Arrest mechanics (cumulative gauge) ---
@@ -401,12 +416,17 @@ func (r *Room) gameLoop() {
 					ArrestGauge: p.ArrestGauge,
 					RescueGauge: p.RescueGauge,
 					Boosted:     p.Boosted,
+					Slowed:      p.Slowed,
 				})
 			}
 
 			var boosters []*game.Booster
 			if r.boosters != nil {
 				boosters = r.boosters.Active
+			}
+			var stumbleStones []*game.StumbleStone
+			if r.stumbleStones != nil {
+				stumbleStones = r.stumbleStones.Active
 			}
 			remaining := r.remainingTime.Seconds()
 			if remaining < 0 {
@@ -419,6 +439,7 @@ func (r *Room) gameLoop() {
 				RemainingTime: remaining,
 				Players:       players,
 				Boosters:      boosters,
+				StumbleStones: stumbleStones,
 			})
 			r.BroadcastMessage(msg)
 
