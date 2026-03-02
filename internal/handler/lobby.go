@@ -180,7 +180,7 @@ func (h *LobbyHandler) HandleSelectTeam(client *ws.Client, msg ws.Message) {
 	slog.Info("player selected team", "player", playerID, "role", role.String())
 }
 
-// HandlePlayerReady handles player ready status.
+// HandlePlayerReady handles player ready status toggle.
 func (h *LobbyHandler) HandlePlayerReady(client *ws.Client, msg ws.Message) {
 	playerID := h.router.GetPlayerID(client.ID)
 	r := h.rm.FindRoomByPlayerID(playerID)
@@ -189,10 +189,10 @@ func (h *LobbyHandler) HandlePlayerReady(client *ws.Client, msg ws.Message) {
 		return
 	}
 
-	allReady := r.SetPlayerReady(playerID, true)
+	allReady := r.TogglePlayerReady(playerID)
 	h.broadcastRoomInfo(r)
 
-	slog.Info("player ready", "player", playerID, "room", r.Code)
+	slog.Info("player ready toggled", "player", playerID, "room", r.Code)
 
 	// Check if all players are ready to start
 	if allReady {
@@ -221,12 +221,15 @@ func (h *LobbyHandler) HandleReturnToLobby(client *ws.Client, _ ws.Message) {
 		return
 	}
 
-	if r.State != game.StateEnded {
+	if r.State == game.StatePlaying {
 		client.SendMessage(ws.NewErrorMessage("게임이 아직 끝나지 않았습니다"))
 		return
 	}
 
-	r.Reset()
+	// Idempotent: only reset if still in ended state
+	if r.State == game.StateEnded {
+		r.Reset()
+	}
 	h.broadcastRoomInfo(r)
 
 	slog.Info("room returned to lobby", "room", r.Code, "by", playerID)

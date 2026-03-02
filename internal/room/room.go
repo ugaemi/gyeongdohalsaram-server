@@ -132,6 +132,18 @@ func (r *Room) SetPlayerReady(playerID string, ready bool) bool {
 	return r.allReady()
 }
 
+// TogglePlayerReady toggles a player's ready status and returns whether all players are ready.
+func (r *Room) TogglePlayerReady(playerID string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if p, ok := r.Players[playerID]; ok {
+		p.Ready = !p.Ready
+	}
+
+	return r.allReady()
+}
+
 // allReady checks if all players are ready and team composition is valid.
 // Caller must hold r.mu.
 func (r *Room) allReady() bool {
